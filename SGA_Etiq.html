@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SGA Etiquetas — capacitADA</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+:root{
+  --red:#C0392B;--red-dark:#922B21;--red-light:#FADBD8;
+  --black:#111;--gray:#666;--gray-light:#bbb;
+  --white:#FFFFFF;--border:#ddd;
+  --font:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#F5F4F0;font-family:var(--font);color:var(--black);}
+.app{max-width:430px;margin:0 auto;height:100vh;display:flex;flex-direction:column;background:var(--white);overflow:hidden;}
+.topbar{background:var(--red);color:white;padding:14px 16px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.topbar-logo{font-size:18px;font-weight:600;letter-spacing:-0.03em;flex:1;}
+.topbar-logo span{opacity:0.6;font-weight:400;}
+.topbar-sub{font-size:10px;opacity:0.7;letter-spacing:0.08em;text-transform:uppercase;}
+.screens{flex:1;overflow:hidden;position:relative;}
+.screen{position:absolute;inset:0;overflow-y:auto;padding:16px 16px 80px;display:none;}
+.screen.active{display:block;}
+.bottom-nav{display:flex;background:var(--white);border-top:1px solid var(--border);flex-shrink:0;z-index:50;}
+.nav-btn{flex:1;padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--gray-light);font-size:10px;font-family:var(--font);}
+.nav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.5;}
+.nav-btn.active{color:var(--red);}
+.card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
+.card-title{font-size:10px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;}
+select,input,textarea{width:100%;padding:10px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);border-radius:8px;background:var(--white);color:var(--black);-webkit-appearance:none;}
+select:focus,input:focus,textarea:focus{outline:2px solid var(--red);border-color:var(--red);}
+textarea{resize:vertical;min-height:56px;line-height:1.5;}
+.field{margin-bottom:10px;}
+.field-label{font-size:11px;color:var(--gray);margin-bottom:4px;display:block;}
+.size-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.size-card{border:1px solid var(--border);border-radius:8px;padding:10px 8px;cursor:pointer;text-align:center;}
+.size-card.active{border-color:var(--red);background:var(--red-light);}
+.size-card .dim{font-size:13px;font-weight:600;font-family:var(--mono);color:var(--red);}
+.size-card .cap{font-size:10px;color:var(--gray);margin-top:2px;}
+.compat-ok{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#EAFAF1;border:1px solid #A9DFBF;border-radius:8px;font-size:13px;color:#1E8449;}
+.compat-block{border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px;}
+.compat-block.bad{background:#FDEDEC;border:1px solid #F1948A;color:#922B21;}
+.compat-block.warn{background:#FEF9E7;border:1px solid #F9CA24;color:#7D6608;}
+.compat-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08);}
+.compat-row:last-child{border-bottom:none;}
+.badge{font-size:10px;padding:2px 7px;border-radius:6px;font-weight:600;white-space:nowrap;}
+.badge.sep{background:#FDEDEC;color:#922B21;}
+.badge.rest{background:#FEF9E7;color:#7D6608;}
+.search-wrap{position:relative;margin-bottom:10px;}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--gray-light);fill:none;stroke-width:2;pointer-events:none;}
+.search-wrap input{padding-left:34px;}
+.prod-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0;}
+.prod-item:last-child{border-bottom:none;}
+.prod-info{flex:1;min-width:0;}
+.prod-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.prod-meta{font-size:10px;color:var(--gray);margin-top:1px;}
+.tag{font-size:9px;padding:2px 7px;border-radius:6px;font-weight:600;white-space:nowrap;}
+.tag.on{background:#EAFAF1;color:#1E8449;}
+.tag.off{background:#f5f5f5;color:#999;}
+.toggle{position:relative;width:38px;height:22px;cursor:pointer;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.tslider{position:absolute;inset:0;background:#ddd;border-radius:11px;transition:0.2s;}
+.tslider:before{content:'';position:absolute;width:18px;height:18px;left:2px;top:2px;background:white;border-radius:50%;transition:0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.toggle input:checked+.tslider{background:var(--red);}
+.toggle input:checked+.tslider:before{transform:translateX(16px);}
+.ghs-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.ghs-chip{padding:5px 10px;font-size:11px;font-family:var(--mono);border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--gray);background:var(--white);}
+.ghs-chip.on{background:var(--red);color:white;border-color:var(--red);}
+.clase-grid{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+.clase-chip{padding:5px 9px;font-size:11px;font-family:var(--mono);border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--gray);background:var(--white);}
+.clase-chip.on{background:#2c3e50;color:white;border-color:#2c3e50;}
+.btn{width:100%;padding:13px;border:none;border-radius:8px;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer;margin-top:6px;}
+.btn-red{background:var(--red);color:white;}
+.btn-outline{background:white;color:var(--black);border:1px solid var(--border);}
+.btn-ghost{background:transparent;color:var(--gray);border:1px solid #eee;}
+.empty{text-align:center;padding:40px 20px;color:var(--gray-light);}
+.empty svg{width:48px;height:48px;stroke:var(--gray-light);fill:none;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;}
+.empty p{font-size:13px;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:white;border-radius:16px;padding:24px;width:100%;max-width:360px;}
+.modal h2{font-size:18px;font-weight:600;margin-bottom:6px;}
+.modal p{font-size:13px;color:var(--gray);margin-bottom:16px;line-height:1.5;}
+.etiqueta-wrap{overflow-x:auto;}
+</style>
+</head>
+<body>
+
+<div class="modal-bg" id="modal-onboard">
+  <div class="modal">
+    <div style="width:44px;height:44px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <h2>Bienvenido a SGA Etiquetas</h2>
+    <p>Ingresa el responsable SST y su celular. Aparecerá como contacto de emergencia en todas las etiquetas.</p>
+    <div class="field"><label class="field-label">Nombre responsable SST</label><input type="text" id="ob-nombre" placeholder="Ej: Juan Pérez"></div>
+    <div class="field"><label class="field-label">Celular de emergencia</label><input type="tel" id="ob-cel" placeholder="Ej: 3239454477"></div>
+    <button class="btn btn-red" id="btn-continuar">Continuar</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="topbar">
+    <div style="flex:1;">
+      <div class="topbar-logo">SGA<span> Etiquetas</span></div>
+      <div class="topbar-sub">capacitADA · Sistema de etiquetado</div>
+    </div>
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  </div>
+
+  <div class="screens">
+    <!-- PANTALLA 1: ETIQUETA -->
+    <div class="screen active" id="s-etiqueta">
+      <div class="card">
+        <div class="card-title">1 — Capacidad del envase</div>
+        <div class="size-grid" id="size-grid"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">2 — Producto</div>
+        <select id="sel-prod"></select>
+      </div>
+      <div id="preview-area" style="display:none;">
+        <div class="card">
+          <div class="card-title">Vista previa de etiqueta</div>
+          <div class="etiqueta-wrap"><div id="label-container"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Verificación TRGS 510</div>
+          <div id="compat-container"></div>
+        </div>
+        <button class="btn btn-red" id="btn-pdf">Imprimir / Guardar PDF</button>
+      </div>
+      <div id="empty-hint" class="empty">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+        <p>Selecciona capacidad y producto para generar la etiqueta</p>
+      </div>
+    </div>
+
+    <!-- PANTALLA 2: BASE DE DATOS -->
+    <div class="screen" id="s-bd">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Buscar producto..." id="search-bd">
+      </div>
+      <div class="card" style="padding:8px 14px;" id="bd-list"></div>
+      <button class="btn btn-red" id="btn-nuevo">+ Agregar nueva sustancia</button>
+    </div>
+
+    <!-- PANTALLA 3: NUEVA SUSTANCIA -->
+    <div class="screen" id="s-nuevo">
+      <div class="card">
+        <div class="card-title">Identificación</div>
+        <div class="field"><label class="field-label">Nombre técnico / IUPAC *</label><input type="text" id="n-nombre" placeholder="Ej: Ácido Acético"></div>
+        <div class="field"><label class="field-label">Nombre comercial</label><input type="text" id="n-comercial" placeholder="Ej: Vinagre Industrial"></div>
+        <div class="field"><label class="field-label">Componentes / Número CAS</label><input type="text" id="n-cas" placeholder="Ej: CH3COOH — CAS: 64-19-7"></div>
+        <div class="field"><label class="field-label">URL Ficha de Datos de Seguridad (FDS)</label><input type="url" id="n-fds" placeholder="https://..."></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Pictogramas SGA</div>
+        <div class="ghs-grid" id="ghs-sel"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Clase TRGS 510 *</div>
+        <div class="clase-grid" id="clase-sel"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Peligrosidad</div>
+        <div class="field"><label class="field-label">Palabra de advertencia</label><select id="n-adv"><option>Peligro</option><option>Atención</option></select></div>
+        <div class="field"><label class="field-label">Frases H (separadas por coma)</label><input type="text" id="n-fh" placeholder="Ej: H226, H302"></div>
+        <div class="field"><label class="field-label">Frases P (separadas por coma)</label><input type="text" id="n-fp" placeholder="Ej: P210, P301+P310"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Proveedor</div>
+        <div class="field"><label class="field-label">Nombre proveedor</label><input type="text" id="n-prov" placeholder="Ej: Química Norte"></div>
+        <div class="field"><label class="field-label">Teléfono</label><input type="tel" id="n-tel" placeholder="+57 601 345 6789"></div>
+        <div class="field"><label class="field-label">Notas internas</label><textarea id="n-notas" placeholder="Observaciones, restricciones..."></textarea></div>
+      </div>
+      <div id="compat-nuevo-wrap" style="display:none;" class="card">
+        <div class="card-title">Verificación antes de guardar</div>
+        <div id="compat-nuevo"></div>
+      </div>
+      <button class="btn btn-outline" id="btn-verificar">Verificar compatibilidad</button>
+      <button class="btn btn-red" id="btn-guardar" style="margin-top:8px;">Guardar en base de datos</button>
+      <button class="btn btn-ghost" id="btn-cancelar" style="margin-top:6px;">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-btn active" id="nav-et">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+      Etiqueta
+    </button>
+    <button class="nav-btn" id="nav-bd">
+      <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+      Productos
+    </button>
+  </div>
+</div>
+
+<script>
+// ========== DATOS Y CONSTANTES ==========
+const FRASES_H={"H200":"Explosivo inestable.","H201":"Explosivo; peligro de explosión en masa.","H202":"Explosivo; grave peligro de proyección.","H203":"Explosivo; peligro de incendio, de onda expansiva o de proyección.","H204":"Peligro de incendio o de proyección.","H205":"Peligro de explosión en masa en caso de incendio.","H220":"Gas extremadamente inflamable.","H221":"Gas inflamable.","H222":"Aerosol extremadamente inflamable.","H223":"Aerosol inflamable.","H224":"Líquido y vapores extremadamente inflamables.","H225":"Líquido y vapores muy inflamables.","H226":"Líquidos y vapores inflamables.","H228":"Sólido inflamable.","H229":"Recipiente a presión: puede reventar si se calienta.","H240":"Peligro de explosión en caso de calentamiento.","H241":"Peligro de incendio o explosión en caso de calentamiento.","H242":"Peligro de incendio en caso de calentamiento.","H250":"Se inflama espontáneamente en contacto con el aire.","H260":"En contacto con el agua desprende gases inflamables que pueden inflamarse espontáneamente.","H261":"En contacto con el agua desprende gases inflamables.","H270":"Puede provocar o agravar un incendio; comburente.","H271":"Puede provocar un incendio o una explosión; muy comburente.","H272":"Puede agravar un incendio; comburente.","H280":"Contiene gas a presión; peligro de explosión en caso de calentamiento.","H281":"Contiene gas refrigerado; puede provocar quemaduras o lesiones criogénicas.","H290":"Puede ser corrosivo para los metales.","H300":"Mortal en caso de ingestión.","H301":"Tóxico en caso de ingestión.","H302":"Nocivo en caso de ingestión.","H304":"Puede ser mortal en caso de ingestión y penetración en las vías respiratorias.","H310":"Mortal en contacto con la piel.","H311":"Tóxico en contacto con la piel.","H312":"Nocivo en contacto con la piel.","H314":"Provoca quemaduras graves en la piel y lesiones oculares graves.","H315":"Provoca irritación cutánea.","H317":"Puede provocar una reacción alérgica en la piel.","H318":"Provoca lesiones oculares graves.","H319":"Provoca irritación ocular grave.","H330":"Mortal en caso de inhalación.","H331":"Tóxico en caso de inhalación.","H332":"Nocivo en caso de inhalación.","H334":"Puede provocar síntomas de alergia o asma o dificultades respiratorias en caso de inhalación.","H335":"Puede irritar las vías respiratorias.","H336":"Puede provocar somnolencia o vértigo.","H340":"Puede provocar defectos genéticos.","H341":"Se sospecha que provoca defectos genéticos.","H350":"Puede provocar cáncer.","H350i":"Puede provocar cáncer por inhalación.","H351":"Se sospecha que provoca cáncer.","H360":"Puede perjudicar la fertilidad o dañar al feto.","H360F":"Puede perjudicar a la fertilidad.","H360D":"Puede dañar al feto.","H361":"Se sospecha que puede perjudicar la fertilidad o dañar el feto.","H361f":"Se sospecha que perjudica a la fertilidad.","H361d":"Se sospecha que daña al feto.","H362":"Puede perjudicar a los niños alimentados con leche materna.","H370":"Provoca daños en los órganos.","H371":"Puede provocar daños en los órganos.","H372":"Provoca daños en los órganos tras exposiciones prolongadas o repetidas.","H373":"Puede provocar daños en los órganos tras exposiciones prolongadas o repetidas.","H400":"Muy tóxico para los organismos acuáticos.","H410":"Muy tóxico para los organismos acuáticos, con efectos nocivos duraderos.","H411":"Tóxico para los organismos acuáticos, con efectos nocivos duraderos.","H412":"Nocivo para los organismos acuáticos, con efectos nocivos duraderos.","H413":"Puede ser nocivo para los organismos acuáticos, con efectos nocivos duraderos.","H420":"Causa daños a la salud pública y el medio ambiente al destruir el ozono."};
+const FRASES_P={"P101":"Si se necesita consejo médico, tener a mano el envase o la etiqueta.","P102":"Mantener fuera del alcance de los niños.","P103":"Leer atentamente y seguir todas las instrucciones.","P201":"Solicitar instrucciones especiales antes del uso.","P202":"No manipular la sustancia antes de haber leído y comprendido todas las instrucciones de seguridad.","P210":"Mantener alejado del calor, superficies calientes, chispas y llamas. No fumar.","P220":"Mantener o almacenar alejado de materiales combustibles.","P233":"Mantener el recipiente herméticamente cerrado.","P240":"Toma de tierra y enlace equipotencial del recipiente y del equipo receptor.","P260":"No respirar el polvo/humo/gas/niebla/vapores/aerosol.","P261":"Evitar respirar el polvo/humo/gas/niebla/vapores/aerosol.","P264":"Lavarse concienzudamente tras la manipulación.","P270":"No comer, beber ni fumar durante su utilización.","P271":"Utilizar únicamente en exteriores o en un lugar bien ventilado.","P273":"Evitar su liberación al medio ambiente.","P280":"Llevar guantes/ropa de protección/equipo de protección para los ojos/la cara.","P282":"Usar guantes aislantes contra el frío y equipo de protección para la cara o los ojos.","P301":"EN CASO DE INGESTIÓN:","P302":"EN CASO DE CONTACTO CON LA PIEL:","P303":"EN CASO DE CONTACTO CON LA PIEL (o el pelo):","P304":"EN CASO DE INHALACIÓN:","P305":"EN CASO DE CONTACTO CON LOS OJOS:","P310":"Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA/médico.","P311":"Llamar a un CENTRO DE TOXICOLOGÍA/médico.","P312":"Llamar a un CENTRO DE TOXICOLOGÍA si la persona se encuentra mal.","P315":"Consultar a un médico inmediatamente.","P330":"Enjuagarse la boca.","P331":"NO provocar el vómito.","P351":"Aclarar cuidadosamente con agua durante varios minutos.","P352":"Lavar con abundante agua.","P353":"Enjuagar la piel con agua.","P361":"Quitar inmediatamente todas las prendas contaminadas.","P363":"Lavar las prendas contaminadas antes de volver a usarlas.","P370":"En caso de incendio:","P378":"Utilizar agente extintor apropiado.","P391":"Recoger el vertido.","P401":"Almacenar conforme a las reglamentaciones locales.","P402":"Almacenar en un lugar seco.","P403":"Almacenar en un lugar bien ventilado.","P405":"Guardar bajo llave.","P501":"Eliminar el contenido/el recipiente según normativa local.","P301+P310":"EN CASO DE INGESTIÓN: Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA/médico.","P301+P330+P331":"EN CASO DE INGESTIÓN: Enjuagar la boca. NO provocar el vómito.","P303+P361+P353":"EN CASO DE CONTACTO CON LA PIEL: Quitar ropa contaminada. Enjuagar con agua.","P304+P340":"EN CASO DE INHALACIÓN: Transportar al aire libre. Mantener posición que facilite respiración.","P305+P351+P338":"EN CASO DE CONTACTO CON LOS OJOS: Enjuagar con agua varios minutos. Quitar lentes si es posible.","P308+P311":"EN CASO DE exposición manifiesta o presunta: Llamar a un CENTRO DE TOXICOLOGÍA/médico.","P403+P235":"Almacenar en lugar ventilado y fresco."};
+const MATRIZ={"1":{"2A":"SEPARADO","2B":"SEPARADO","3":"SEPARADO","4.1A":"SEPARADO","4.1B":"SEPARADO","4.2":"SEPARADO","4.3":"SEPARADO","5.1A":"SEPARADO","5.1B":"SEPARADO","5.1C":"SEPARADO","5.2":"SEPARADO","6.1A":"SEPARADO","6.1B":"SEPARADO","6.1C":"SEPARADO","6.1D":"SEPARADO","6.2":"SEPARADO","7":"SEPARADO","8A":"SEPARADO","8B":"SEPARADO","10":"SEPARADO","11":"SEPARADO","12":"SEPARADO","13":"SEPARADO"},"3":{"4.1B":"OK","4.2":"SEPARADO","4.3":"SEPARADO","5.1A":"SEPARADO","5.1B":"RESTRICCION 4","5.1C":"SEPARADO","5.2":"SEPARADO","6.1A":"OK","6.1B":"OK","6.1C":"OK","6.1D":"OK","6.2":"SEPARADO","7":"SEPARADO","8A":"OK","8B":"OK","10":"OK","11":"OK","12":"OK","13":"OK"},"5.1A":{"5.1B":"OK","5.1C":"SEPARADO","6.1A":"SEPARADO","6.1B":"SEPARADO","6.1C":"SEPARADO","6.1D":"SEPARADO","7":"SEPARADO","8A":"SEPARADO","8B":"SEPARADO","10":"OK","11":"OK","12":"OK","13":"OK"},"5.1B":{"6.1A":"RESTRICCION 4","6.1B":"RESTRICCION 4","6.1C":"RESTRICCION 6","6.1D":"RESTRICCION 6","7":"SEPARADO","8A":"RESTRICCION 7","8B":"OK","10":"RESTRICCION 7","11":"RESTRICCION 7","12":"OK","13":"OK"},"8B":{"10":"OK","11":"OK","12":"OK","13":"OK"},"6.1A":{"6.1B":"OK","6.1C":"OK","6.1D":"OK","7":"SEPARADO","8A":"OK","8B":"OK","10":"OK","11":"OK","12":"OK","13":"OK"},"2A":{"3":"SEPARADO","10":"SEPARADO"}};
+const GHS_CODES=['GHS01','GHS02','GHS03','GHS04','GHS05','GHS06','GHS07','GHS08','GHS09'];
+const CLASES=['1','2A','2B','3','4.1A','4.1B','4.2','4.3','5.1A','5.1B','5.1C','5.2','6.1A','6.1B','6.1C','6.1D','6.2','7','8A','8B','10','11','12','13'];
+
+// ===== TAMAÑO ÚNICO: Más de 500 Litros (148x210mm) =====
+const ETIQUETA_SIZE = { alto: 148, ancho: 210, picto: 46, qr: 35 };
+
+// ===== URLs de pictogramas reales desde GitHub =====
+const GHS_IMG_URLS = {
+  'GHS01': 'https://raw.githubusercontent.com/capacitADA/GesEtiqsga/main/GHS01.png',
+  'GHS02': 'https://raw.githubusercontent.com/capacitADA/GesEtiqsga/main/GHS02.png',
+  'GHS03': 'https://raw.githubusercontent.com/capacitADA/GesEtiqsga/main/GHS03.png',
+  'GHS04': 'https://raw.githubusercontent.com/capacitADA/GesEtiqsga/main/GHS04.png',
+  'GHS05': 'https://raw.githubusercontent.com/capacitADA/GesEtiqsga/main/GHS05.png',
+  'GHS06': 'https://raw.githubusercontent.com/capacitADA/GesEtiqsga/main/GHS06.png',
+  'GHS07': 'https://raw.githubusercontent.com/capacitADA/GesEtiqsga/main/GHS07.png',
+  'GHS08': 'https://raw.githubusercontent.com/capacitADA/GesEtiqsga/main/GHS08.png',
+  'GHS09': 'https://raw.githubusercontent.com/capacitADA/GesEtiqsga/main/GHS09.png'
+};
+
+// ===== DATOS DE PRODUCTOS =====
+let productos = [
+  {id:1,nombre:'Hipoclorito de Sodio',comercial:'Lejía Concentrada',proveedor:'Cloros S.A.',tel:'+52 55 1234 5678',advertencia:'Peligro',pictos:'GHS05, GHS09',frasesH:'H314, H400',frasesP:'P273, P280, P305',clase:'8B',activo:true,componentes:'NaClO — CAS: 7681-52-9',fds:''},
+  {id:2,nombre:'Alcohol Isopropílico',comercial:'Isopropanol 99%',proveedor:'Solventes Global',tel:'+34 91 876 5432',advertencia:'Peligro',pictos:'GHS02, GHS07',frasesH:'H225, H319, H336',frasesP:'P210, P233, P261',clase:'3',activo:true,componentes:'C3H8O — CAS: 67-63-0',fds:''},
+  {id:3,nombre:'Ácido Sulfúrico',comercial:'Vitriolo Industrial',proveedor:'Química Norte',tel:'+57 601 345 6789',advertencia:'Peligro',pictos:'GHS05',frasesH:'H314',frasesP:'P280, P303+P361+P353, P310',clase:'8B',activo:true,componentes:'H2SO4 — CAS: 7664-93-9',fds:''},
+  {id:4,nombre:'Peróxido de Hidrógeno (50%)',comercial:'Agua Oxigenada Ind.',proveedor:'Oxigenados S.A.',tel:'+51 1 987 6543',advertencia:'Peligro',pictos:'GHS03, GHS05, GHS07',frasesH:'H272, H314, H302',frasesP:'P210, P220, P280',clase:'5.1A',activo:true,componentes:'H2O2 — CAS: 7722-84-1',fds:'https://isquisa.com/assets/files/HDSLISTOS/%C3%93XIDOS/HDS-Per%C3%B3xido%20de%20Hidr%C3%B3geno%2050_.pdf'},
+  {id:5,nombre:'Acetona',comercial:'Dimetilcetona',proveedor:'Solventes Global',tel:'+34 91 876 5432',advertencia:'Peligro',pictos:'GHS02, GHS07',frasesH:'H225, H319, H336',frasesP:'P210, P233, P261',clase:'3',activo:true,componentes:'C3H6O — CAS: 67-64-1',fds:''},
+  {id:6,nombre:'Amoníaco (25%)',comercial:'Amoníaco Líquido',proveedor:'Química Norte',tel:'+57 601 345 6789',advertencia:'Peligro',pictos:'GHS05, GHS09, GHS07',frasesH:'H314, H335, H400',frasesP:'P260, P273, P280',clase:'8B',activo:true,componentes:'NH3 — CAS: 1336-21-6',fds:'https://www.chemos.de/import/data/msds/ES_es/1336-21-6-A0023969-ES-es.pdf'},
+  {id:7,nombre:'Metanol',comercial:'Alcohol Metílico',proveedor:'Global Chem',tel:'+54 11 4455 6677',advertencia:'Peligro',pictos:'GHS02, GHS06, GHS08',frasesH:'H225, H301, H311, H370',frasesP:'P210, P280, P301+P310',clase:'3',activo:true,componentes:'CH3OH — CAS: 67-56-1',fds:''},
+  {id:8,nombre:'Gasolina',comercial:'Nafta Industrial',proveedor:'PetroRed',tel:'+52 55 9988 7766',advertencia:'Peligro',pictos:'GHS02, GHS07, GHS08, GHS09',frasesH:'H224, H304, H315, H411',frasesP:'P210, P240, P301+P310',clase:'3',activo:false,componentes:'Mezcla Hidrocarburos',fds:''},
+  {id:9,nombre:'Hidróxido de Sodio',comercial:'Soda Cáustica Escamas',proveedor:'Cloros S.A.',tel:'+52 55 1234 5678',advertencia:'Peligro',pictos:'GHS05',frasesH:'H314, H290',frasesP:'P260, P280, P303+P361+P353',clase:'8B',activo:true,componentes:'NaOH — CAS: 1310-73-2',fds:''},
+  {id:10,nombre:'Formaldehído (37%)',comercial:'Formol',proveedor:'BioLab S.A.',tel:'+56 2 2345 6789',advertencia:'Peligro',pictos:'GHS06, GHS08, GHS05, GHS07',frasesH:'H301, H311, H350, H317',frasesP:'P201, P280, P304+P340',clase:'6.1A',activo:true,componentes:'CH2O — CAS: 50-00-0',fds:''},
+  {id:11,nombre:'Cloroformo',comercial:'Triclorometano',proveedor:'LabTech',tel:'+593 2 998 123',advertencia:'Atención',pictos:'GHS07, GHS08',frasesH:'H302, H315, H351, H373',frasesP:'P202, P281, P308+P311',clase:'6.1D',activo:true,componentes:'CHCl3 — CAS: 67-66-3',fds:''},
+  {id:12,nombre:'Cianuro de Sodio',comercial:'Sal de Cianuro',proveedor:'MetalChem',tel:'+51 1 555 0101',advertencia:'Peligro',pictos:'GHS06, GHS09',frasesH:'H300, H310, H330, H410',frasesP:'P260, P280, P301+P310',clase:'6.1A',activo:false,componentes:'NaCN — CAS: 143-33-9',fds:''},
+  {id:13,nombre:'Nitrógeno Líquido',comercial:'Nitrógeno Criogénico',proveedor:'AirGas',tel:'+34 91 111 2233',advertencia:'Atención',pictos:'GHS04',frasesH:'H281',frasesP:'P282, P403, P315',clase:'2A',activo:true,componentes:'N2 — CAS: 7727-37-9',fds:''},
+  {id:14,nombre:'Ácido Clorhídrico (37%)',comercial:'Ácido Muriático',proveedor:'Química Norte',tel:'+57 601 345 6789',advertencia:'Peligro',pictos:'GHS05, GHS07',frasesH:'H314, H335',frasesP:'P260, P280, P305+P351+P338',clase:'8B',activo:true,componentes:'HCl — CAS: 7647-01-0',fds:''}
+];
+let nextId = productos.length + 1;
+let currentSizeLabel = 'Más de 500 Litros';
+let contactoSST = { nombre: '', cel: '' };
+
+// ===== FUNCIONES AUXILIARES =====
+function filtrarGHS(str) {
+  let a = str.split(',').map(s => s.trim()).filter(Boolean);
+  if (a.includes('GHS06') || a.includes('GHS05') || a.includes('GHS08')) {
+    a = a.filter(g => g !== 'GHS07');
+  }
+  return a;
+}
+
+function expandirFrasesHTML(codigos, dic) {
+  if (!codigos) return '';
+  return codigos.split(',').map(c => {
+    const code = c.trim().replace(/\s+/g, '');
+    const txt = dic[code] || '';
+    return `<div style="margin-bottom:2px;"><span style="font-weight:700;font-family:monospace;">${code}:</span> ${txt}</div>`;
+  }).join('');
+}
+
+function getCompat(c1, c2) {
+  if (c1 === c2) return 'OK';
+  const r = MATRIZ[c1] && MATRIZ[c1][c2] ? MATRIZ[c1][c2] : (MATRIZ[c2] && MATRIZ[c2][c1] ? MATRIZ[c2][c1] : null);
+  return r || 'OK';
+}
+
+function renderCompat(p, targetId) {
+  const activos = productos.filter(x => x.id !== p.id && x.activo);
+  const conf = [], rest = [];
+  activos.forEach(o => {
+    const r = getCompat(String(p.clase), String(o.clase));
+    if (r === 'SEPARADO') conf.push({ nombre: o.nombre, clase: o.clase });
+    else if (r && r.startsWith('RESTRICCION')) rest.push({ nombre: o.nombre, clase: o.clase, r });
+  });
+  let html = '';
+  if (!conf.length && !rest.length) {
+    html = '<div class="compat-ok"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg> Sin incompatibilidades con productos activos</div>';
+  } else {
+    if (conf.length) html += `<div class="compat-block bad"><strong>No compatibles (${conf.length})</strong>${conf.map(c => `<div class="compat-row"><span>${c.nombre} <span style="opacity:0.6;font-size:10px;">Clase ${c.clase}</span></span><span class="badge sep">SEPARADO</span></div>`).join('')}</div>`;
+    if (rest.length) html += `<div class="compat-block warn"><strong>Con restricciones (${rest.length})</strong>${rest.map(c => `<div class="compat-row"><span>${c.nombre} <span style="opacity:0.6;font-size:10px;">Clase ${c.clase}</span></span><span class="badge rest">${c.r}</span></div>`).join('')}</div>`;
+  }
+  document.getElementById(targetId).innerHTML = html;
+}
+
+function pictoImg(code, sizePx) {
+  const url = GHS_IMG_URLS[code];
+  const s = sizePx || 85;
+  if (url) {
+    return `<img src="${url}" width="${s}" height="${s}" style="display:block;object-fit:contain;">`;
+  }
+  // Fallback SVG si no hay imagen
+  const shapes = {
+    GHS01:'<polygon points="40,5 75,72 5,72" fill="white" stroke="#C0392B" stroke-width="5"/><path d="M30,55 Q40,35 50,55" fill="#111"/><circle cx="40" cy="42" r="6" fill="#111"/>',
+    GHS02:'<polygon points="40,5 75,72 5,72" fill="white" stroke="#C0392B" stroke-width="5"/><path d="M36,62 Q30,50 34,42 Q38,34 40,30 Q42,34 46,42 Q50,50 44,62Z" fill="#111"/>',
+    GHS03:'<polygon points="40,5 75,72 5,72" fill="white" stroke="#C0392B" stroke-width="5"/><path d="M33,52 Q40,36 47,52" fill="none" stroke="#111" stroke-width="3.5"/><ellipse cx="40" cy="59" rx="12" ry="4.5" fill="none" stroke="#111" stroke-width="3"/><circle cx="40" cy="44" r="9" fill="none" stroke="#111" stroke-width="3"/><path d="M37,35 Q39,27 40,22 Q41,27 43,22 Q46,18 40,13 Q37,18 37,22" fill="#111"/>',
+    GHS04:'<polygon points="40,5 75,72 5,72" fill="white" stroke="#C0392B" stroke-width="5"/><rect x="22" y="42" width="36" height="20" rx="10" fill="#111"/><rect x="35" y="30" width="8" height="16" rx="3" fill="#111"/>',
+    GHS05:'<polygon points="40,5 75,72 5,72" fill="white" stroke="#C0392B" stroke-width="5"/><path d="M18,28 Q11,52 20,64" stroke="#111" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M62,28 Q69,52 60,64" stroke="#111" stroke-width="4.5" fill="none" stroke-linecap="round"/><rect x="28" y="20" width="24" height="13" rx="2" stroke="#111" stroke-width="3" fill="none"/><line x1="34" y1="33" x2="34" y2="26" stroke="#111" stroke-width="2.5"/><line x1="46" y1="33" x2="46" y2="26" stroke="#111" stroke-width="2.5"/>',
+    GHS06:'<polygon points="40,5 75,72 5,72" fill="white" stroke="#C0392B" stroke-width="5"/><circle cx="40" cy="46" r="17" fill="#111"/><circle cx="34" cy="42" r="5.5" fill="white"/><circle cx="46" cy="42" r="5.5" fill="white"/><path d="M31,59 L36,54 M49,59 L44,54" stroke="#111" stroke-width="3"/>',
+    GHS07:'<polygon points="40,5 75,72 5,72" fill="white" stroke="#C0392B" stroke-width="5"/><text x="40" y="67" text-anchor="middle" font-size="46" font-weight="900" fill="#111" font-family="Arial">!</text>',
+    GHS08:'<polygon points="40,5 75,72 5,72" fill="white" stroke="#C0392B" stroke-width="5"/><ellipse cx="40" cy="36" rx="9" ry="12" fill="#111"/><path d="M31,36 Q20,26 24,16 M49,36 Q60,26 56,16" stroke="#111" stroke-width="3" fill="none"/><path d="M35,48 Q31,56 35,63 M45,48 Q49,56 45,63" stroke="#111" stroke-width="2.5" fill="none"/>',
+    GHS09:'<polygon points="40,5 75,72 5,72" fill="white" stroke="#C0392B" stroke-width="5"/><path d="M30,63 Q19,46 27,35 Q35,24 40,31 Q45,24 53,35 Q61,46 50,63Z" fill="#111"/><circle cx="27" cy="57" r="4" fill="#111"/>'
+  };
+  const shape = shapes[code] || '';
+  return `<svg width="${s}" height="${s}" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">${shape}</svg>`;
+}
+
+// ===== CONSTRUIR ETIQUETA TAMAÑO FIJO 148x210mm =====
+function buildEtiqueta(p, sst, empresa, forPrint) {
+  if(forPrint===undefined) forPrint=false;
+  const sz = ETIQUETA_SIZE;
+  const ghsFull = filtrarGHS(p.pictos);
+  const ghs1 = ghsFull[0] || '';
+  const ghs2 = ghsFull[1] || '';
+  const ghsCodes = ghsFull.join(', ');
+  const fH = expandirFrasesHTML(p.frasesH, FRASES_H);
+  const fP = expandirFrasesHTML(p.frasesP, FRASES_P);
+  const adv = p.advertencia.toUpperCase();
+  const advColor = p.advertencia.toLowerCase().includes('peligro') ? '#C0392B' : '#856404';
+  const qrUrl = p.fds ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(p.fds)}` : '';
+
+  // ESCALA: preview=1.857px/mm (210mm→390px), print=3.7795px/mm (96dpi real)
+  const SCALE = forPrint ? 3.7795 : 1.857;
+  const mm = (v) => Math.round(v * SCALE);
+
+  // Dimensiones totales
+  const W = mm(sz.ancho);
+  const H = mm(sz.alto);
+
+  // Pictogramas y QR en mm exactos según tamaño
+  const pictoPx = mm(sz.picto);  // 46mm→85px preview | 46mm→174px print
+  const qrPx    = mm(sz.qr);     // 35mm→65px preview | 35mm→132px print
+
+  // FUENTES — valores en mm, se escalan igual que todo
+  // Aprobados en simulación: GHS/GRE/Frases = 3.8mm (~7px preview)
+  const fTitulo  = mm(5.5);   // nombre producto
+  const fAdv     = mm(8.0);   // PELIGRO/ATENCIÓN
+  const fSec     = mm(3.2);   // títulos sección rojo
+  const fFrases  = mm(3.8);   // frases H y P (+1px aprobado)
+  const fGHS     = mm(3.8);   // códigos GHS (+1px aprobado)
+  const fGRE     = mm(3.8);   // texto GRE 123 (+1px aprobado)
+  const fComp    = mm(3.0);   // componentes label
+  const fDatos   = mm(3.2);   // proveedor, SST
+  const fFDS     = mm(2.8);   // texto FDS cursiva
+  const fMicro   = mm(2.5);   // capacitADA
+
+  // Grid columnas mm→px: 71.5 | 7.5 | 75 | 6 | 25 | 25
+  const c1=mm(71.5),c2=mm(7.5),c3=mm(75),c4=mm(6),c5=mm(25),c6=mm(25);
+  // Grid filas mm→px: 5.3 13.8 5.3 5.3 6 7 9.9 5.3 5.3 6 6 6 6 13.3 27.6 9.3 5.3 5.3
+  const r1=mm(5.3),r2=mm(13.8),r3=mm(5.3),r4=mm(5.3),r5=mm(6),r6=mm(7),
+        r7=mm(9.9),r8=mm(5.3),r9=mm(5.3),r10=mm(6),r11=mm(6),r12=mm(6),
+        r13=mm(6),r14=mm(13.3),r15=mm(27.6),r16=mm(9.3),r17=mm(5.3),r18=mm(5.3);
+
+  const border  = '0.5px solid #ccc';
+  const borderH = '1px solid #888';
+
+  return `<div style="
+    width:${W}px;height:${H}px;
+    font-family:Arial,sans-serif;background:white;color:#111;
+    border:1.5px solid #111;overflow:hidden;display:grid;
+    grid-template-columns:${c1}px ${c2}px ${c3}px ${c4}px ${c5}px ${c6}px;
+    grid-template-rows:${r1}px ${r2}px ${r3}px ${r4}px ${r5}px ${r6}px ${r7}px ${r8}px ${r9}px ${r10}px ${r11}px ${r12}px ${r13}px ${r14}px ${r15}px ${r16}px ${r17}px ${r18}px;
+  ">
+  <!-- F1+F2 C1-3: NOMBRE -->
+  <div style="grid-column:1/4;grid-row:1/3;display:flex;align-items:center;justify-content:center;text-align:center;font-size:${fTitulo}px;font-weight:900;text-transform:uppercase;line-height:1.2;padding:3px;border-right:${borderH};border-bottom:${borderH};">${p.nombre}</div>
+  <!-- F1 C4-6: label Componentes -->
+  <div style="grid-column:4/7;grid-row:1/2;font-size:${fComp}px;font-weight:700;color:#333;padding:1px 3px;display:flex;align-items:flex-end;border-bottom:${border};">Componentes:</div>
+  <!-- F2 C4-6: CAS -->
+  <div style="grid-column:4/7;grid-row:2/3;font-size:${fComp}px;font-style:italic;color:#444;padding:1px 3px;display:flex;align-items:center;border-bottom:${borderH};">${p.componentes}</div>
+  <!-- F3 C1: vacía -->
+  <div style="grid-column:1/2;grid-row:3/4;border-right:${border};border-bottom:${border};"></div>
+  <!-- F3 C2: vacía -->
+  <div style="grid-column:2/3;grid-row:3/4;border-right:${border};border-bottom:${border};"></div>
+  <!-- F3 C3: tamaño -->
+  <div style="grid-column:3/4;grid-row:3/4;font-size:${fDatos}px;color:#666;display:flex;align-items:center;justify-content:flex-end;padding:0 3px;border-right:${borderH};border-bottom:${border};">${sz.label}</div>
+  <!-- F3+F4 C4: sep vacía -->
+  <div style="grid-column:4/5;grid-row:3/5;border-right:${border};"></div>
+  <!-- F3+F4 C5-6: PALABRA ADVERTENCIA -->
+  <div style="grid-column:5/7;grid-row:3/5;display:flex;align-items:center;justify-content:center;border-bottom:${borderH};">
+    <span style="font-size:${fAdv}px;font-weight:900;color:${advColor};letter-spacing:0.03em;">${adv}</span>
+  </div>
+  <!-- F4 C1-3: INDICACIONES DE PELIGRO -->
+  <div style="grid-column:1/4;grid-row:4/5;display:flex;align-items:center;padding:0 3px;border-right:${borderH};border-bottom:${border};">
+    <span style="font-size:${fSec}px;font-weight:900;color:#C0392B;text-transform:uppercase;letter-spacing:0.07em;">Indicaciones de peligro</span>
+  </div>
+  <!-- F4-18 C4: separadora vacía -->
+  <div style="grid-column:4/5;grid-row:4/19;border-right:${border};"></div>
+  <!-- F5 C5-6: vacía -->
+  <div style="grid-column:5/7;grid-row:5/6;border-bottom:${border};"></div>
+  <!-- F5-8 C1-3: FRASES H -->
+  <div style="grid-column:1/4;grid-row:5/9;padding:3px;font-size:${fFrases}px;line-height:1.45;overflow:hidden;border-right:${borderH};border-bottom:${borderH};">${fH}</div>
+  <!-- F6-7 C5-6: códigos GHS -->
+  <div style="grid-column:5/7;grid-row:6/8;display:flex;align-items:center;justify-content:center;font-size:${fGHS}px;color:#555;font-style:italic;border-bottom:${border};">${ghsCodes}</div>
+  <!-- F8-14 C5-6: PICTOGRAMA 1 -->
+  <div style="grid-column:5/7;grid-row:8/15;display:flex;align-items:center;justify-content:center;padding:2px;border-bottom:${borderH};">
+    ${ghs1 ? pictoImg(ghs1, pictoPx) : ''}
+  </div>
+  <!-- F9 C1-3: CONSEJOS DE PRUDENCIA -->
+  <div style="grid-column:1/4;grid-row:9/10;display:flex;align-items:center;padding:0 3px;border-right:${borderH};border-bottom:${border};">
+    <span style="font-size:${fSec}px;font-weight:900;color:#C0392B;text-transform:uppercase;letter-spacing:0.07em;">Consejos de prudencia</span>
+  </div>
+  <!-- F10-14 C1-3: FRASES P -->
+  <div style="grid-column:1/4;grid-row:10/15;padding:3px;font-size:${fFrases}px;line-height:1.45;overflow:hidden;border-right:${borderH};border-bottom:${borderH};">${fP}</div>
+  <!-- F15-18 C5-6: PICTOGRAMA 2 -->
+  <div style="grid-column:5/7;grid-row:15/19;display:flex;align-items:center;justify-content:center;padding:2px;">
+    ${ghs2 ? pictoImg(ghs2, pictoPx) : ''}
+  </div>
+  <!-- F15 C1: guía GRE -->
+  <div style="grid-column:1/2;grid-row:15/16;font-size:${fGRE}px;color:#333;line-height:1.35;padding:2px 3px;display:flex;align-items:center;border-right:${border};border-bottom:${border};">Consultar la guía de respuesta en caso emergencia GRE 123</div>
+  <!-- F15 C2: vacía -->
+  <div style="grid-column:2/3;grid-row:15/16;border-right:${border};border-bottom:${border};"></div>
+  <!-- F15+16 C3: QR -->
+  <div style="grid-column:3/4;grid-row:15/17;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;border-right:${borderH};border-bottom:${borderH};">
+    ${qrUrl
+      ? `<img src="${qrUrl}" width="${qrPx}" height="${qrPx}" style="display:block;">`
+      : `<div style="width:${qrPx}px;height:${qrPx}px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:${fFDS}px;color:#aaa;text-align:center;">Sin FDS</div>`
+    }
+  </div>
+  <!-- F16 C1: CONTACTO DE EMERGENCIA -->
+  <div style="grid-column:1/2;grid-row:16/17;display:flex;align-items:center;padding:0 3px;border-right:${border};border-bottom:${border};">
+    <span style="font-size:${fSec}px;font-weight:900;color:#C0392B;text-transform:uppercase;letter-spacing:0.07em;">Contacto de emergencia</span>
+  </div>
+  <!-- F16 C2: vacía -->
+  <div style="grid-column:2/3;grid-row:16/17;border-right:${border};border-bottom:${border};"></div>
+  <!-- F17+18 C3: texto FDS -->
+  <div style="grid-column:3/4;grid-row:17/19;font-size:${fFDS}px;color:#555;font-style:italic;line-height:1.4;padding:2px 3px;display:flex;align-items:center;border-right:${borderH};">
+    Para mayor información, revisar la Ficha de Datos de Seguridad (FDS) antes de utilizar el producto.
+  </div>
+  <!-- F17 C1: Proveedor -->
+  <div style="grid-column:1/2;grid-row:17/18;font-size:${fDatos}px;color:#111;display:flex;align-items:center;padding:0 3px;border-right:${border};border-bottom:${border};">${p.proveedor} - Tel: ${p.tel}</div>
+  <!-- F17 C2: vacía -->
+  <div style="grid-column:2/3;grid-row:17/18;border-right:${border};border-bottom:${border};"></div>
+  <!-- F18 C1: SST -->
+  <div style="grid-column:1/2;grid-row:18/19;font-size:${fDatos}px;color:#111;display:flex;align-items:center;padding:0 3px;border-right:${border};">SST empresa. Tel: <span style="color:#C0392B;font-weight:700;margin-left:2px;">${sst.cel||'######'}</span></div>
+  <!-- F18 C2: capacitADA -->
+  <div style="grid-column:2/3;grid-row:18/19;font-size:${fMicro}px;color:#aaa;display:flex;align-items:center;padding:0 2px;border-right:${border};">${empresa}</div>
+</div>`;
+}
+
+
+function imprimirPDF() {
+  const p = productos.find(x => x.id == document.getElementById('sel-prod').value);
+  if (!p) return;
+  const etiquetaHTML = buildEtiqueta(p, contactoSST, 'capacitADA · Cel: 3239454477', true);
+  const nombreArchivo = `${p.nombre.replace(/\s+/g, '_')}_${currentSizeLabel.replace(/\s+/g, '_')}.pdf`;
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Etiqueta — ${p.nombre}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans&display=swap');
+    @page { size: 210mm 148mm; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { width: 210mm; height: 148mm; margin: 0; padding: 0; background: white; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    .print-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+  </style>
+</head>
+<body>
+  <div class="print-container">
+    ${etiquetaHTML}
+  </div>
+  <script>window.onload = function() { setTimeout(function() { window.print(); }, 600); };<\/script>
+</body>
+</html>`);
+  win.document.close();
+}
+
+function populateSel() {
+  const sel = document.getElementById('sel-prod');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— Seleccionar producto activo —</option>';
+  productos.filter(p => p.activo).forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = p.nombre;
+    sel.appendChild(o);
+  });
+  sel.value = prev;
+  if (prev && !sel.value) {
+    document.getElementById('preview-area').style.display = 'none';
+    document.getElementById('empty-hint').style.display = 'block';
+  }
+}
+
+function renderBD(filtro) {
+  const f = filtro.toLowerCase();
+  const list = productos.filter(p => !f || p.nombre.toLowerCase().includes(f) || p.comercial.toLowerCase().includes(f));
+  document.getElementById('bd-list').innerHTML = list.map(p => `
+    <div class="prod-item">
+      <div class="prod-info"><div class="prod-name">${p.nombre}</div><div class="prod-meta">${p.comercial} · Clase ${p.clase}</div></div>
+      <span class="tag ${p.activo ? 'on' : 'off'}">${p.activo ? 'Activo' : 'Inactivo'}</span>
+      <label class="toggle" style="margin-left:8px;"><input type="checkbox" ${p.activo ? 'checked' : ''} data-id="${p.id}" class="toggle-cb"><span class="tslider"></span></label>
+    </div>`).join('');
+  document.querySelectorAll('.toggle-cb').forEach(cb => {
+    cb.addEventListener('change', function() {
+      const p = productos.find(x => x.id == this.dataset.id);
+      if (p) { p.activo = this.checked; populateSel(); renderBD(document.getElementById('search-bd').value); }
+    });
+  });
+}
+
+function buildSizeGrid() {
+  const sizes = [
+    { label: 'Hasta 3 Litros', alto: 52, ancho: 74 },
+    { label: '3 – 50 Litros', alto: 74, ancho: 105 },
+    { label: '50 – 500 Litros', alto: 105, ancho: 148 },
+    { label: 'Más de 500 Litros', alto: 148, ancho: 210 }
+  ];
+  const container = document.getElementById('size-grid');
+  container.innerHTML = sizes.map((s, i) => `
+    <div class="size-card ${s.label === currentSizeLabel ? 'active' : ''}" data-label="${s.label}">
+      <div class="dim">${s.alto}×${s.ancho}mm</div>
+      <div class="cap">${s.label}</div>
+    </div>`).join('');
+  document.querySelectorAll('.size-card').forEach(el => {
+    el.addEventListener('click', function() {
+      document.querySelectorAll('.size-card').forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
+      currentSizeLabel = this.dataset.label;
+      if (document.getElementById('sel-prod').value) renderLabel();
+    });
+  });
+}
+
+function buildGHS() {
+  const container = document.getElementById('ghs-sel');
+  container.innerHTML = GHS_CODES.map(g => `<div class="ghs-chip" data-ghs="${g}">${g}</div>`).join('');
+  document.querySelectorAll('.ghs-chip').forEach(c => c.addEventListener('click', function() { this.classList.toggle('on'); }));
+}
+
+function buildClase() {
+  const container = document.getElementById('clase-sel');
+  container.innerHTML = CLASES.map(c => `<div class="clase-chip" data-clase="${c}">${c}</div>`).join('');
+  document.querySelectorAll('.clase-chip').forEach(c => c.addEventListener('click', function() { document.querySelectorAll('.clase-chip').forEach(x => x.classList.remove('on')); this.classList.add('on'); }));
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function setNav(id) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function onProdChange() {
+  const v = document.getElementById('sel-prod').value;
+  document.getElementById('preview-area').style.display = v ? 'block' : 'none';
+  document.getElementById('empty-hint').style.display = v ? 'none' : 'block';
+  if (v) renderLabel();
+}
+
+function renderLabel() {
+  const p = productos.find(x => x.id == document.getElementById('sel-prod').value);
+  if (!p) return;
+  document.getElementById('label-container').innerHTML = buildEtiqueta(p, contactoSST, 'capacitADA', false);
+  renderCompat(p, 'compat-container');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('btn-continuar').addEventListener('click', function() {
+    const n = document.getElementById('ob-nombre').value.trim();
+    const c = document.getElementById('ob-cel').value.trim();
+    if (!n || !c) { alert('Por favor completa nombre y celular.'); return; }
+    contactoSST = { nombre: n, cel: c };
+    document.getElementById('modal-onboard').style.display = 'none';
+  });
+  document.getElementById('nav-et').addEventListener('click', function() { showScreen('s-etiqueta'); setNav('nav-et'); });
+  document.getElementById('nav-bd').addEventListener('click', function() { showScreen('s-bd'); setNav('nav-bd'); renderBD(''); });
+  document.getElementById('sel-prod').addEventListener('change', onProdChange);
+  document.getElementById('btn-pdf').addEventListener('click', imprimirPDF);
+  document.getElementById('search-bd').addEventListener('input', function() { renderBD(this.value); });
+  document.getElementById('btn-nuevo').addEventListener('click', function() {
+    showScreen('s-nuevo');
+    document.getElementById('compat-nuevo-wrap').style.display = 'none';
+    ['n-nombre', 'n-comercial', 'n-cas', 'n-fds', 'n-fh', 'n-fp', 'n-prov', 'n-tel', 'n-notas'].forEach(id => { document.getElementById(id).value = ''; });
+    document.querySelectorAll('.ghs-chip, .clase-chip').forEach(c => c.classList.remove('on'));
+  });
+  document.getElementById('btn-verificar').addEventListener('click', function() {
+    const clase = document.querySelector('.clase-chip.on');
+    if (!clase) { alert('Selecciona una clase TRGS 510.'); return; }
+    const fakeP = { id: -1, clase: clase.dataset.clase, nombre: 'Nueva sustancia', activo: true };
+    document.getElementById('compat-nuevo-wrap').style.display = 'block';
+    renderCompat(fakeP, 'compat-nuevo');
+    document.getElementById('compat-nuevo-wrap').scrollIntoView({ behavior: 'smooth' });
+  });
+  document.getElementById('btn-guardar').addEventListener('click', function() {
+    const nombre = document.getElementById('n-nombre').value.trim();
+    if (!nombre) { alert('El nombre técnico es obligatorio.'); return; }
+    const ghs = [...document.querySelectorAll('.ghs-chip.on')].map(x => x.dataset.ghs).join(', ');
+    const clase = document.querySelector('.clase-chip.on');
+    productos.push({
+      id: nextId++, nombre,
+      comercial: document.getElementById('n-comercial').value || nombre,
+      proveedor: document.getElementById('n-prov').value || '—',
+      tel: document.getElementById('n-tel').value || '—',
+      advertencia: document.getElementById('n-adv').value,
+      pictos: ghs,
+      frasesH: document.getElementById('n-fh').value,
+      frasesP: document.getElementById('n-fp').value,
+      clase: clase ? clase.dataset.clase : '13',
+      activo: true,
+      componentes: document.getElementById('n-cas').value || '',
+      fds: document.getElementById('n-fds').value || ''
+    });
+    populateSel();
+    showScreen('s-bd');
+    setNav('nav-bd');
+    renderBD('');
+  });
+  document.getElementById('btn-cancelar').addEventListener('click', function() { showScreen('s-bd'); });
+  buildSizeGrid();
+  buildGHS();
+  buildClase();
+  populateSel();
+  renderBD('');
+});
+</script>
+</body>
+</html>
