@@ -1,0 +1,246 @@
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a18;font-family:sans-serif}
+canvas{display:block;width:100%;height:460px;cursor:grab}
+#ui{display:flex;gap:5px;padding:7px;flex-wrap:wrap;background:#0d0d1f}
+button{padding:5px 11px;border-radius:5px;border:1px solid #444;background:#181830;color:#bbb;cursor:pointer;font-size:11px}
+button:hover{background:#22224a}
+.bg{border-color:#44cc66!important;color:#88ffaa!important}
+.by{border-color:#ccaa00!important;color:#ffdd44!important}
+#info{padding:4px 10px;font-size:11px;color:#555;background:#0d0d1f}
+</style>
+<canvas id="cv"></canvas>
+<div id="ui">
+  <button class="bg" onclick="toggleFold()" id="bF">⟷ Plegar laterales</button>
+  <button class="by" onclick="toggleLid()"  id="bL">↑ Quitar tapa</button>
+  <button onclick="setView(0)">Isométrica</button>
+  <button onclick="setView(1)">Frontal</button>
+  <button onclick="setView(2)">Superior</button>
+  <button onclick="setView(3)">Inferior</button>
+  <button onclick="setView(4)">Lateral</button>
+  <button onclick="setView(5)">Trasera</button>
+</div>
+<div id="info">
+  Laterales: <strong id="sL" style="color:#44ff88">Abiertos</strong> &nbsp;|&nbsp;
+  Tapa: <strong id="sT" style="color:#44ff88">Colocada</strong> &nbsp;|&nbsp;
+  <span>Arrastra=rotar · Scroll=zoom</span>
+</div>
+<script>
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+function resize(){cv.width=cv.offsetWidth||640;cv.height=460;}
+resize();window.addEventListener('resize',resize);
+
+const A=0.041, B=0.019, TT=0.009;
+
+// Frontal
+const FW=1.18, FH=1.00;
+// Lateral — medidas verificadas
+const M=0.55;   // morado ancho total lateral
+const Y=0.96;   // amarillo alto
+const C_L=0.51; // celeste largo
+const LAT_H=B+Y+B; // ~100cm alto total lateral
+// Tapa
+const TW=1.22, TD=M; // tapa 122cm × 55cm prof
+
+// Cámara
+const CX=0, CY=LAT_H/2, CZ=-M/2;
+let camA=0.62,camE=0.36,zoom=1.5;
+let tA=camA,tE=camE,tZ=zoom;
+
+function proj(x,y,z){
+  const lx=x-CX,ly=y-CY,lz=z-CZ;
+  const rx=lx*Math.cos(camA)-lz*Math.sin(camA);
+  const rz=lx*Math.sin(camA)+lz*Math.cos(camA);
+  const sy=-ly*Math.cos(camE)+rz*Math.sin(camE)*0.58;
+  const sc=Math.min(cv.width,cv.height)*0.29*zoom;
+  return[cv.width*0.5+rx*sc, cv.height*0.5+sy*sc];
+}
+
+function shade(hex,f){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return`rgb(${Math.round(Math.min(255,r*f))},${Math.round(Math.min(255,g*f))},${Math.round(Math.min(255,b*f))})`;
+}
+
+function face(v3,col,br,eb){
+  const p=v3.map(([x,y,z])=>proj(x,y,z));
+  ctx.beginPath();ctx.moveTo(p[0][0],p[0][1]);
+  for(let i=1;i<p.length;i++)ctx.lineTo(p[i][0],p[i][1]);
+  ctx.closePath();
+  ctx.fillStyle=shade(col,br);ctx.fill();
+  ctx.strokeStyle=shade(col,eb||2.0);ctx.lineWidth=1.4;ctx.stroke();
+}
+
+function box(ox,oy,oz,w,h,d,col){
+  const x0=ox,x1=ox+w,y0=oy,y1=oy+h,z0=oz,z1=oz+d;
+  face([[x0,y1,z0],[x1,y1,z0],[x1,y1,z1],[x0,y1,z1]],col,1.15,2.4);
+  face([[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]],col,0.90,2.0);
+  face([[x1,y0,z0],[x1,y0,z1],[x1,y1,z1],[x1,y1,z0]],col,0.70,1.7);
+  face([[x0,y0,z0],[x0,y0,z1],[x0,y1,z1],[x0,y1,z0]],col,0.80,1.8);
+  face([[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0]],col,0.60,1.4);
+  face([[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1]],col,0.50,1.2);
+}
+
+function boxRY(ox,oy,oz,w,h,d,col,px,pz,ang){
+  function rot(x,z){
+    const lx=x-px,lz=z-pz;
+    return[px+lx*Math.cos(ang)-lz*Math.sin(ang),
+           pz+lx*Math.sin(ang)+lz*Math.cos(ang)];
+  }
+  const x0=ox,x1=ox+w,y0=oy,y1=oy+h,z0=oz,z1=oz+d;
+  function v(x,y,z){const[rx,rz]=rot(x,z);return[rx,y,rz];}
+  const vs=[v(x0,y0,z0),v(x1,y0,z0),v(x1,y1,z0),v(x0,y1,z0),
+            v(x0,y0,z1),v(x1,y0,z1),v(x1,y1,z1),v(x0,y1,z1)];
+  const V=i=>vs[i];
+  function fc(idx,br,eb){
+    const p=idx.map(i=>{const[x,y,z]=V(i);return proj(x,y,z);});
+    ctx.beginPath();ctx.moveTo(p[0][0],p[0][1]);
+    for(let i=1;i<p.length;i++)ctx.lineTo(p[i][0],p[i][1]);
+    ctx.closePath();
+    ctx.fillStyle=shade(col,br);ctx.fill();
+    ctx.strokeStyle=shade(col,eb);ctx.lineWidth=1.4;ctx.stroke();
+  }
+  fc([3,2,6,7],1.15,2.4);fc([4,5,6,7],0.90,2.0);
+  fc([1,5,6,2],0.70,1.7);fc([0,4,7,3],0.80,1.8);
+  fc([0,1,2,3],0.60,1.4);fc([0,1,5,4],0.50,1.2);
+}
+
+// Bisagra espejada correcta
+function drawHinge(hy,side,angLat){
+  const HH=0.055,HT=0.004,HW=0.032,col='#aaaaaa';
+  if(side>0){
+    box(FW/2-A, hy, 0, A, HH, HT, col);
+    boxRY(FW/2-HT, hy, -HW, HT, HH, HW, col, FW/2,0,angLat);
+  } else {
+    box(-FW/2, hy, 0, A, HH, HT, col);
+    boxRY(-FW/2, hy, -HW, HT, HH, HW, col, -FW/2,0,angLat);
+  }
+}
+
+let foldAng=Math.PI/2,tFold=Math.PI/2;
+let lidY=0,tLidY=0;
+let isFolded=false,isLidOff=false;
+
+function drawLateral(side){
+  const pivX=side*FW/2;
+  const angR= Math.PI/2-foldAng;
+  const ang=side>0?angR:-angR;
+
+  // Local coords: borde bisagra en x=0 (der) o x=-M (izq)
+  const ox = side>0 ? 0 : -M;
+
+  // MORADO inferior: y=0..B, x=ox..ox+M, z=-A/2..A/2
+  boxRY(ox,   0,   -A/2,  M,B,A, '#aa22ee', pivX,0,ang);
+  // MORADO superior: y=B+Y..B+Y+B
+  boxRY(ox,   B+Y, -A/2,  M,B,A, '#aa22ee', pivX,0,ang);
+
+  // AMARILLO izq (borde bisagra): x=ox..ox+B, y=B..B+Y
+  boxRY(ox,   B, -A/2,  B,Y,A, '#ffdd00', pivX,0,ang);
+  // AMARILLO der (borde libre): x=ox+M-B..ox+M
+  boxRY(ox+M-B, B, -A/2,  B,Y,A, '#ffdd00', pivX,0,ang);
+
+  // CELESTE travesaños — alineados al borde INTERIOR (z=-B, cara hacia dentro)
+  // z = -B..0 (borde interior del marco)
+  boxRY(ox+B, B+Y*0.33, -B,  C_L,A,B, '#22bbee', pivX,0,ang);
+  boxRY(ox+B, B+Y*0.66, -B,  C_L,A,B, '#22bbee', pivX,0,ang);
+
+  // RUEDAS debajo del morado inferior (y=0, cx en centro de cada amarillo)
+  function wr(lx){
+    const r=0.035,t=0.018;
+    boxRY(lx-r, -r*2, -t/2, r*2,r*2,t, '#eecc00', pivX,0,ang);
+  }
+  wr(ox+B/2);
+  wr(ox+M-B/2);
+}
+
+function drawScene(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  face([[-1.0,-0.08,0.12],[1.0,-0.08,0.12],[1.0,-0.08,-0.75],[-1.0,-0.08,-0.75]],'#111128',1.0);
+
+  const angR=Math.PI/2-foldAng;
+
+  // ── TAPA (boca abajo) ──────────────────────────────
+  // Cara interna lila (z=0) = cara externa verde (z=0) ✓
+  // Tapa profundidad = M=55cm = profundidad lateral
+  const LY=LAT_H+lidY;
+  // Panel triple
+  box(-TW/2, LY, -TD, TW, TT, TD, '#c89030');
+  // Lila frontal (z=0..B): cara interna en z=0 = cara externa verde
+  box(-TW/2, LY-A, 0,    TW,A,B, '#dd55bb');
+  // Lila trasero (z=-TD-B..-TD)
+  box(-TW/2, LY-A, -TD,  TW,A,B, '#dd55bb');
+  // Azul lados
+  box(-TW/2,   LY-A, -TD+B, B,A,TD-B*2, '#2255ff');
+  box(TW/2-B,  LY-A, -TD+B, B,A,TD-B*2, '#2255ff');
+
+  // ── FRONTAL ────────────────────────────────────────
+  // Verde: H=B cara, D=A prof, z=-A..0
+  box(-FW/2, LAT_H-B, -A, FW,B,A, '#22cc44'); // sup — alineado con top del lateral
+  box(-FW/2, 0,       -A, FW,B,A, '#22cc44'); // inf
+
+  // Rojos: W=A cara, H=96cm, D=B prof, z=-B..0
+  box(-FW/2,   B, -B,  A,Y,B, '#ee2222'); // izq borde
+  box(-A/2,    B, -B,  A,Y,B, '#ee2222'); // centro
+  box(FW/2-A,  B, -B,  A,Y,B, '#ee2222'); // der borde
+
+  // Naranja travesaño
+  box(-FW/2+A, LAT_H/2-B/2, -A, FW-A*2,B,A, '#ff8800');
+
+  // Bisagras
+  [LAT_H*0.22, LAT_H*0.65].forEach(hy=>{
+    drawHinge(hy,+1, angR);
+    drawHinge(hy,-1,-angR);
+  });
+
+  // ── LATERALES ──────────────────────────────────────
+  drawLateral(+1);
+  drawLateral(-1);
+}
+
+function loop(){
+  requestAnimationFrame(loop);
+  camA+=(tA-camA)*0.09;camE+=(tE-camE)*0.09;zoom+=(tZ-zoom)*0.09;
+  foldAng+=(tFold-foldAng)*0.06;
+  lidY+=(tLidY-lidY)*0.06;
+  drawScene();
+}
+loop();
+
+let drag=false,lx=0,ly=0;
+cv.addEventListener('mousedown',e=>{drag=true;lx=e.offsetX;ly=e.offsetY;cv.style.cursor='grabbing';});
+window.addEventListener('mouseup',()=>{drag=false;cv.style.cursor='grab';});
+window.addEventListener('mousemove',e=>{
+  if(!drag)return;
+  tA+=(e.offsetX-lx)*0.008;
+  tE=Math.max(-1.3,Math.min(1.3,tE-(e.offsetY-ly)*0.005));
+  lx=e.offsetX;ly=e.offsetY;
+});
+cv.addEventListener('wheel',e=>{tZ=Math.max(0.5,Math.min(5,tZ-e.deltaY*0.001));e.preventDefault();},{passive:false});
+let ltx=0,lty=0;
+cv.addEventListener('touchstart',e=>{ltx=e.touches[0].clientX;lty=e.touches[0].clientY;},{passive:true});
+cv.addEventListener('touchmove',e=>{
+  tA+=(e.touches[0].clientX-ltx)*0.010;
+  tE=Math.max(-1.3,Math.min(1.3,tE-(e.touches[0].clientY-lty)*0.007));
+  ltx=e.touches[0].clientX;lty=e.touches[0].clientY;e.preventDefault();
+},{passive:false});
+
+function toggleFold(){
+  isFolded=!isFolded;tFold=isFolded?0.01:Math.PI/2;
+  document.getElementById('bF').textContent=isFolded?'⟷ Abrir':'⟷ Plegar';
+  document.getElementById('sL').textContent=isFolded?'Plegados':'Abiertos';
+  document.getElementById('sL').style.color=isFolded?'#ffcc44':'#44ff88';
+}
+function toggleLid(){
+  isLidOff=!isLidOff;tLidY=isLidOff?0.55:0;
+  document.getElementById('bL').textContent=isLidOff?'↓ Colocar':'↑ Quitar tapa';
+  document.getElementById('sT').textContent=isLidOff?'Removida':'Colocada';
+  document.getElementById('sT').style.color=isLidOff?'#ffcc44':'#44ff88';
+}
+
+const VIEWS=[
+  [0.62,0.36,1.50],[0.01,0.05,1.80],[0.01,1.28,1.60],
+  [0.01,-1.10,1.60],[1.57,0.05,1.80],[3.14,0.05,1.80],
+];
+function setView(i){tA=VIEWS[i][0];tE=VIEWS[i][1];tZ=VIEWS[i][2];}
+</script>
