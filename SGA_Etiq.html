@@ -120,23 +120,23 @@ select,input,textarea{width:100%;padding:10px 12px;font-size:14px;border:1px sol
     <!-- SST Empresa -->
     <div style="background: #f9f9f9; margin: 12px 0; padding: 12px; border-radius: 12px; text-align: left; border-left: 5px solid #C0392B;">
       <strong>👤 SST Empresa</strong><br>
-      <a href="#" id="emergenciaTelSST" style="font-weight: bold; text-decoration: none; color: #2c3e50; font-size: 14pt;">📞 Cargando...</a>
+      <a href="#" id="emergenciaTelSST" style="font-weight: bold; text-decoration: underline; color: #2c3e50; font-size: 14pt;">📞 Cargando...</a>
     </div>
 
-    <!-- CISPROQUIM: el logo reemplaza al emoji, y va junto al texto -->
+    <!-- CISPROQUIM -->
     <div style="background: #f9f9f9; margin: 12px 0; padding: 12px; border-radius: 12px; text-align: left; border-left: 5px solid #C0392B;">
       <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
         <img src="https://ccs.org.co/wp-content/uploads/2024/10/Identificador-01.png" alt="CISPROQUIM" style="height: 30px;">
         <strong>CISPROQUIM (Emergencias Químicas 24h)</strong>
       </div>
-      <a href="tel:+576012886012" style="font-weight: bold; text-decoration: none; color: #2c3e50; font-size: 14pt;">📞 (601) 288 60 12</a><br>
-      <a href="tel:018000916012" style="font-weight: bold; text-decoration: none; color: #2c3e50; font-size: 14pt;">📞 Línea nacional: 01 8000 916012</a>
+      <a href="tel:+576012886012" style="font-weight: bold; text-decoration: underline; color: #2c3e50; font-size: 14pt;">📞 (601) 288 60 12</a><br>
+      <a href="tel:018000916012" style="font-weight: bold; text-decoration: underline; color: #2c3e50; font-size: 14pt;">📞 Línea nacional: 01 8000 916012</a>
     </div>
 
-    <!-- Proveedor -->
+    <!-- Proveedor (con nombre dinámico) -->
     <div style="background: #f9f9f9; margin: 12px 0; padding: 12px; border-radius: 12px; text-align: left; border-left: 5px solid #C0392B;">
-      <strong>🏭 Proveedor del Producto</strong><br>
-      <a href="#" id="emergenciaTelProveedor" style="font-weight: bold; text-decoration: none; color: #2c3e50; font-size: 14pt;">📞 Cargando...</a>
+      <strong id="proveedorNombre">🏭 Cargando proveedor...</strong><br>
+      <a href="#" id="emergenciaTelProveedor" style="font-weight: bold; text-decoration: underline; color: #2c3e50; font-size: 14pt;">📞 Cargando...</a>
     </div>
 
     <button id="cerrarModalEmergencia" style="background: #C0392B; color: white; border: none; padding: 10px 20px; border-radius: 30px; font-size: 1em; cursor: pointer; margin-top: 15px; width: 100%;">Cerrar</button>
@@ -325,8 +325,12 @@ function abrirModalEmergencia(producto) {
   const nombreSpan = document.getElementById('emergenciaProductoNombre');
   const sstLink = document.getElementById('emergenciaTelSST');
   const proveedorLink = document.getElementById('emergenciaTelProveedor');
+  const proveedorNombreSpan = document.getElementById('proveedorNombre'); // <-- nueva
 
   nombreSpan.textContent = producto.nombre;
+  
+  // Actualizar el nombre del proveedor
+  proveedorNombreSpan.textContent = `🏭 ${producto.proveedor || 'Proveedor no especificado'}`;
 
   const sstTel = contactoSST.cel || 'No registrado';
   sstLink.href = `tel:${sstTel.replace(/\D/g, '')}`;
